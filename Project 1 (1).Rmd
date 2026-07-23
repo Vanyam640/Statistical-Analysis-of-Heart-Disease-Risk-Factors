@@ -1,0 +1,267 @@
+---
+title: 'Project 1: Identifying Risk Factors of Different Types of Chest Pain'
+author: "Vanya Murzin"
+date: "2024-03-19"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE)
+```
+# Importing the Data
+First off we need to import the dataset we need to make sure the data is used properly. I am using a heart disease dataset that I found on kaggle.com which is a site where datasets are posted publicly for users to download and use in their code. 
+```{r}
+
+heart_Disease <- read.csv("Dataset Heart Disease.csv")
+# Make sure dataset is in the right directory so it can be used successfully. 
+# getwd()
+```
+# What the dataset consists of
+This dataset consists of 
+
+
+# Import Libraries
+Next, I need to import certain libraries in order to make the necessary computations and visual representations for my data. ggplot2, tidyverse, dplyr are all libraries used for the models of the data.
+```{r}
+suppressMessages(library(dplyr))
+suppressMessages(library(ggplot2))
+suppressMessages(library(forcats))
+suppressMessages(library(rsample))
+suppressMessages(library(tidyverse))
+suppressMessages(library(tidymodels))
+suppressMessages(library(gridExtra))
+suppressMessages(library(plotly))
+```
+
+
+# Data Cleaning
+I first wanted to look at the overall structure and details of this dataset. Looking at the data set you can see that the data I have is numerical meaning each variable has values that are either an integer or decimal or float number. I can also see that each of the 13 variables in this dataset has 1048 values.
+Next in order to clean the data I wanted to get rid of any null/NA values that occur in my dataset. I eliminated the NA values and then check to see if I missed any other values. Therefore this dataset is sufficiently cleaned and I can begin to explore and visualize the dataset. 
+
+
+```{r}
+head(heart_Disease)
+# Eliminate all NA values
+cleaned_data <- na.omit(heart_Disease)
+# Check if NA values were eliminated
+sum(is.na(heart_Disease))
+
+#glimpse(heart_Disease)
+```
+
+# Questions I want to answer:
+
+Question 1: Use pie chart, bar plot, linear regression to map out relationships between variables.
+
+Question 2: Correlation between Age and cholesterol level. 
+
+Question 3: Interpret correlation coefficients and r^2 values in real world context.
+
+
+# Data Exploration
+
+I started off with mapping out the relationship between age and cholestorol. I made a simple scatter plot with a blue linear regression in order to see the correlation between age and cholestorol. This will eventually be used as a rough baseline for determining if someone is at risk of heart disease. This is because high cholestorol is more common with age and the more cholestorol someone has the more likely that their arteries will be blocked, making the rhythm of pumping in blood to the heart slow down or change which causes heart conditions.
+```{r fig2, fig.height = 5, fig.width = 5, fig.align = "center"}
+#Visual representation of correlation of age and cholestorol.
+ggplot(heart_Disease, aes(heart_Disease$age, heart_Disease$cholesterol)) + 
+  geom_point() + geom_smooth(method = 'lm', se = FALSE) + theme_bw() + 
+  labs(x = "Age", y = "Cholestorol Lvl(mg/dL)",
+       title = "Correlation between Age vs Cholestorol") +
+  theme(plot.title = element_text(hjust = 0.5, size = 15, face = 'bold'))
+
+# Slight positive correlation? OR is there no correlation?
+# Example: Finding correlation between age and chlestorol.
+correlation <- cor(heart_Disease$age, heart_Disease$cholesterol)
+
+# Print the correlation coefficient
+print(correlation)
+# There is very slight positive correlation
+
+# r^2 value
+# Example: Linear regression model using lm() function
+# Let's use the mtcars dataset to predict 'mpg' based on 'hp' (horsepower)
+model <- lm(age ~ cholesterol, data = heart_Disease)
+
+# Print summary of the linear regression model
+summary(model)
+# "Multiple r^2"---> r^2 value
+#r^2 value = 0.009388 *100% = 0.9388%
+# Almost no correlation
+```
+Usually there is a clear positive correlation between age and correlation. While this correlation in this graph is slightly positive it is almost zero. Why is this the case? It is because of the range of the subjects who participated in this study having different lifetyles. If you are older but are more healthy by eating well, exercising etc. your cholesterol level might be lower which seems to be what happened in this case.
+
+# Prevalence of Different Types of Chest Pain
+
+Here I wanted to see if the prevalence of one type of chest pain dominated over the other types in order to see if I need to work with a specific subset of the dataset.
+```{r}
+# Calculate the count of each chest pain type
+chest_pain_counts <- table(heart_Disease$chest.pain.type)
+
+# Print chest_pain_counts to check if it contains the correct counts
+print(chest_pain_counts)
+
+# Create a data frame for the pie chart
+pie_data <- data.frame(Type = factor(names(chest_pain_counts), levels = c("1", "2", "3", "4")),
+                       Count = as.vector(chest_pain_counts))  # Convert counts to vector
+
+# Print pie_data to check its structure
+print(pie_data)
+
+# Define custom colors for the pie chart
+my_colors <- c("blue", "green", "red", "purple")
+
+# Create the pie chart
+plot_ly(pie_data, labels = ~Type, values = ~Count, type = 'pie',
+        textinfo = 'label+percent', 
+        insidetextfont = list(color = '#FFFFFF'),
+        marker = list(colors = my_colors),
+        textposition = 'inside',
+        hoverinfo = 'text') %>%
+  layout(title = "Prevalence of Different Types of Chest Pain",
+         showlegend = TRUE)
+
+```
+
+# Data Visualization
+
+Are certain types of chest pain more common due to exercise?
+
+The 2 variables I used for this pie chart visualization are  chest.pain.type
+  and target. Chest.pain.type has 4 values: 1,2,3,4 signifying the different types of chest pain.
+Type 1: typical angina 
+Type 2: atypical angina 
+Type 3: non-anginal pain 
+Type 4: asymptomatic
+exercise.angina on the other hand has only 2 values: 1 and 0. 1 signifies that the subject has exercise induced heart disease and 0 signifies that the subject does not have exercise induced heart disease. 
+```{r}
+library(ggplot2)
+
+# Read the dataset
+heart_Disease <- read.csv("Dataset Heart Disease.csv")
+
+# Define custom colors
+my_colors <- c("blue", "green", "red", "purple")
+
+# Create a bar plot
+ggplot(heart_Disease, aes(x = factor(chest.pain.type), y = exercise.angina, fill = factor(chest.pain.type))) +
+  geom_bar(stat = "summary", fun = "mean", color = "black") +
+  scale_fill_manual(values = my_colors) +
+  geom_text(stat = "summary", aes(label = round(..y.., 2)), vjust = -0.5, size = 3, color = "black") +
+  labs(x = "Chest Pain Type", y = "Mean of exercise induced angina", 
+       title = "Relationship between Chest Pain Type and Exercise Angina") +
+  theme_minimal() +
+  theme(legend.position = "bottom") +
+  guides(fill = guide_legend(title = "Chest Pain Type"))
+
+```
+
+The graph shows that type 1 and type 4 chest pain are more likely to be induced by exercise with mean values of 0.47 and 0.6 respectively. In contrast, type 2,3 chest pain is most likely induced by other causes as the mean amount of exercise induced chain pain for type 2 and type 3 chest pain is considerably lower than type 1 and 4. 
+
+# Using Linear Regression to model the correlation between age and cholestorol level in relation to the different types of chest pain.
+
+```{r}
+heart_Disease <- read.csv("Dataset Heart Disease.csv")
+# Define colors based on a single variable (e.g., 'chest pain type')
+colors <- ifelse(heart_Disease$chest.pain.type == 1, "blue",
+                 ifelse(heart_Disease$chest.pain.type == 2, "green",
+                        ifelse(heart_Disease$chest.pain.type == 3, "red", 
+                               ifelse(heart_Disease$chest.pain.type == 4, "purple", NA))))
+
+# Create data frame with colors
+df <- data.frame(age = heart_Disease$age, chol = heart_Disease$cholesterol, color = colors)
+
+# Plot using ggplot2
+ggplot(df, aes(x = age, y = chol, color = factor(color))) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE) +  # Add regression lines
+  scale_color_manual(values = c("blue", "green", "red", "purple"), 
+                     labels = c("Type 1", "Type 2", "Type 3", "Type 4")) +
+  labs(x = "Age", y = "Cholesterol", 
+       title = "Correlation Between Age and Cholestorol level and Types of Chest Pain.") +
+  theme_minimal()
+
+library(dplyr)
+
+# Read the dataset
+heart_Disease <- read.csv("Dataset Heart Disease.csv")
+
+# Define colors based on a single variable (e.g., 'chest pain type')
+colors <- ifelse(heart_Disease$chest.pain.type == 1, "blue",
+                 ifelse(heart_Disease$chest.pain.type == 2, "green",
+                        ifelse(heart_Disease$chest.pain.type == 3, "red", 
+                               ifelse(heart_Disease$chest.pain.type == 4, "purple", NA))))
+
+# Create data frame with colors
+df <- data.frame(age = heart_Disease$age, chol = heart_Disease$cholesterol, color = colors)
+
+# Plot using ggplot2
+library(ggplot2)
+
+# Function to calculate correlation coefficient and R^2 value
+calc_correlation <- function(subset_data) {
+  correlation <- cor(subset_data$age, subset_data$chol)
+  r_squared <- summary(lm(chol ~ age, data = subset_data))$r.squared
+  return(c(correlation, r_squared))
+}
+
+# Iterate over unique colors and calculate correlation coefficients and R^2 values
+correlation_results <- sapply(unique(df$color), function(color) {
+  subset_data <- df[df$color == color, ]
+  correlation_values <- calc_correlation(subset_data)
+  names(correlation_values) <- c("Correlation", "R_squared")
+  return(correlation_values)
+})
+
+# Convert the results to a data frame
+correlation_df <- data.frame(Type = c("Type 1", "Type 2", "Type 3", "Type 4"),
+                             t(correlation_results))  # Transpose the correlation results
+
+# Add labels for correlation and R^2 values
+correlation_df$Correlation_Label <- paste("Correlation:", round(correlation_df$Correlation, 2))
+correlation_df$R_squared_Label <- paste("R_squared:", round(correlation_df$R_squared, 2))
+
+# Print the correlation and R^2 values with labels
+print(correlation_df)
+#####################################################
+multi_model <- lm(cholesterol ~ age + sex + resting.bps + max.heart.rate + exercise.angina,
+                  data = heart_Disease)
+
+coef_df <- data.frame(
+  Variable = names(coef(multi_model)),
+  Estimate = coef(multi_model)
+)
+
+ggplot(coef_df[-1,], aes(x = reorder(Variable, Estimate), y = Estimate)) +
+  geom_bar(stat = "identity") +
+  coord_flip() +
+  theme_minimal() +
+  labs(title = "Multiple Linear Regression Coefficients",
+       x = "Variables",
+       y = "Effect on Cholesterol")
+
+heart_Disease$predicted <- predict(multi_model)
+
+ggplot(heart_Disease, aes(x = predicted, y = cholesterol)) +
+  geom_point(alpha = 0.5) +
+  geom_abline(slope = 1, intercept = 0, color = "red") +
+  theme_minimal() +
+  labs(title = "Predicted vs Actual Cholesterol",
+       x = "Predicted",
+       y = "Actual")
+summary(multi_model)
+```
+
+
+
+Based on the data in this plot we can see that the correlation for every type of chest pain is closer to 0 which shows there is minimal correlation. The r^2 value shows that there is a large amount of variance of the data because the r^2 value is closer to 0. Furthermore, type 2 chest pain is positively correlated while type 3 chest pain is the only negatively correlated type of chest pain. This means that Type 1,2,4 chest pain are more likely to occur if you are older and have higher cholestorol levels while type 3 chest pain is caused by other factors.
+
+
+## Results
+
+By Exploring and modeling this data we have found that type 1 and 4 chest pain are most likely caused by exercise and that 3 types of chest pain have a high relationship to be tied to high age and cholestorol levels. This is important because a doctor can use the results of this linear regression model to narrow down what type of chest pain a patient has based on the risk factors present(age, high cholestorol, whether the patient has exercised or not). This can be used to perdict types of chest pains that can occur and prevent then by making lifestyle changes based on what your age, cholestorol level, and exercise amount is.
+
+
+
+
